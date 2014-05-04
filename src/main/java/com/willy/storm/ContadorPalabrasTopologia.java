@@ -8,6 +8,7 @@ import backtype.storm.StormSubmitter;
 import backtype.storm.generated.AlreadyAliveException;
 import backtype.storm.generated.InvalidTopologyException;
 import backtype.storm.utils.Utils;
+import backtype.storm.tuple.Fields;
 
 
 public class ContadorPalabrasTopologia {
@@ -22,12 +23,11 @@ public class ContadorPalabrasTopologia {
 		builder.setBolt("splitBolt", new SplitBolt(), 10)
 				.shuffleGrouping("lectorSpout");
 		
-		// Como este es el contador, necesitamos que sea œnico, porque si no
-		// tendr’amos que unir todos estos "contadorBolt" en otro bolt
-		// ("mixerContadorBolt" por ejemplo) para unir todas las salidas de
-		// contadores. O bien usar algo global, tipo Redis ;)
-		builder.setBolt("contadorBolt", new ContadorBolt(), 1).
-				shuffleGrouping("splitBolt");
+		// Al usar .fieldsGrouping, todo lo igual ir‡ al mismo ContadorBolt,
+		// por lo que pasamos de distribuir de una forma uniforme pero aleatoria
+		// los datos a que el sistema nos distribuya un mismo texto a un mismo bolt
+		builder.setBolt("contadorBolt", new ContadorBolt(), 10)
+			.fieldsGrouping("splitBolt", new Fields(com.willy.storm.Fields.WORD));
 	}
 	public TopologyBuilder getBuilder() {
 		return builder;
